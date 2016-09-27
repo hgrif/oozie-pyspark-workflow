@@ -1,0 +1,63 @@
+<workflow-app name="workflow" xmlns="uri:oozie:workflow:0.5">
+
+    <global>
+        <job-tracker>${jobTracker}</job-tracker>
+        <name-node>${nameNode}</name-node>
+        <configuration>
+            <!-- Configuration so YARN doesn't kill the AM/launcher. -->
+            <property>
+                <name>oozie.launcher.mapreduce.map.memory.mb</name>
+                <value>9216</value>
+            </property>
+            <property>
+                <name>oozie.launcher.mapreduce.map.java.opts</name>
+                <value>-Xmx6144m</value>
+            </property>
+            <property>
+                <name>oozie.launcher.yarn.app.mapreduce.am.resource.mb</name>
+                <value>768</value>
+            </property>
+            <!-- Properties that I have set but I'm not sure of if I need them. -->
+            <property>
+                <name>oozie.launcher.mapred.job.queue.name</name>
+                <value>launcher</value>
+            </property>
+            <property>
+                <name>mapred.task.timeout</name>
+                <value>7200000</value>
+            </property>
+            <property>
+                <name>mapreduce.reduce.shuffle.connect.timeout</name>
+                <value>7200000</value>
+            </property>
+            <property>
+                <name>mapreduce.reduce.shuffle.read.timeout</name>
+                <value>7200000</value>
+            </property>
+        </configuration>
+    </global>
+
+    <start to="bash-pipeline"/>
+
+    <!-- Bash script to do the spark-submit. The version numbers of these actions are magic. -->
+    <action name="bash-pipeline">
+        <shell xmlns="uri:oozie:shell-action:0.3">
+            <exec>submit_script.sh</exec>
+            <argument>run_pipeline.py</argument>
+            <argument>${date}</argument> <!-- This got passed from the coordinator. --> 
+            <file>${workflowRoot}/bin/submit_script.sh</file>
+            <file>${workflowRoot}/bin/run_pipeline.py</file>
+            <file>${workflowRoot}/dist/project.1.0-py3.5.egg</file>
+        </shell>
+        <ok to="end"/>
+        <error to="fail"/>
+    </action>
+
+    <!-- You wish you'd ever get Oozie errors. -->
+    <kill name="fail">
+        <message>Bash action failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+
+    <end name ="end"/>
+
+</workflow-app>

@@ -1,0 +1,44 @@
+<coordinator-app name="coordinator"
+    frequency="${coord:days(1)}"
+    start="${jobStart}"
+    end="${jobEnd}"
+    timezone="UTC"
+    xmlns="uri:oozie:coordinator:0.4">
+
+    <controls>
+        <!-- See http://stackoverflow.com/a/21818132 -->
+        <timeout>-1</timeout>
+        <concurrency>1</concurrency>
+        <execution>FIFO</execution>
+        <throttle>1</throttle>
+    </controls>
+
+    <datasets>
+        <dataset name="data-in-hdfs" frequency="${coord:hours(1)}" initial-instance="2015-11-01T00:00Z" timezone="UTC">
+            <uri-template>hdfs://nameservice1/data/hive/warehouse/database.db/table/utc_date=${YEAR}-${MONTH}-${DAY}/utc_hour=${HOUR}</uri-template>
+            <done-flag></done-flag>
+        </dataset>
+    </datasets>
+
+    <input-events>
+        <data-in name="event-data-in-hdfs" dataset="data_in-hdfs">
+            <!-- Delay some days. -->
+            <instance>${coord:current(2)}</instance>
+        </data-in>
+    </input-events>
+
+    <action>
+        <workflow>
+            <app-path>${workflowRoot}/workflow.xml</app-path>
+            <configuration>
+                <!-- Pass the date to the workflow. -->
+                <property>
+                    <name>date</name>
+                    <value>${coord:nominalTime()}</value>
+                </property>
+            </configuration>
+        </workflow>
+    </action>
+
+
+</coordinator-app>
